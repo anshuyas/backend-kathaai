@@ -1,42 +1,28 @@
 import express from "express";
+import {
+  getStories,
+  getStoryById,
+  publishStory,
+  downloadStory,
+} from "../controllers/story.controller";
 
 const router = express.Router();
 
-// temporary storage
-let stories: any[] = [];
+router.get("/", getStories);
 
-// create story
-router.post("/", (req, res) => {
-  const story = {
-    id: Date.now().toString(),
-    ...req.body,
-  };
+router.get(
+  "/:id",
+  getStoryById
+);
 
-  stories.push(story);
+router.patch(
+  "/:id/publish",
+  publishStory
+);
 
-  res.json({
-    success: true,
-    story,
-  });
-});
-
-// get story by id
-router.get("/:id", (req, res) => {
-  const story = stories.find((s) => s.id === req.params.id);
-
-  if (!story) {
-    return res.status(404).json({
-      success: false,
-      message: "Story not found",
-    });
-  }
-
-  res.json(story);
-});
-
-// list all stories
-router.get("/", (req, res) => {
-  res.json(stories);
-});
+router.patch(
+  "/:id/download",
+  downloadStory
+);
 
 export default router;
