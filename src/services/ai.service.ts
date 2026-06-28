@@ -91,8 +91,11 @@ QUIZ RULES:
 - Never generate fewer than 5 questions.
 - Never generate more than 5 questions.
 - Each question must have exactly 4 options.
-- Exactly one correct answer.
 - Questions must test understanding of the story.
+- The "answer" field MUST contain the EXACT text of the correct option.
+- Never return A, B, C or D as the answer.
+- Never return an option index.
+- The answer must exactly match one of the option strings.
 
 OTHER RULES:
 - Make it child-friendly.
@@ -100,6 +103,30 @@ OTHER RULES:
 - Follow the Story Length rules exactly.
 - Output MUST be valid JSON only.
 - No markdown, no explanations.
+
+IMPORTANT:
+For every quiz question, the answer must be copied exactly from one of the four options.
+
+Correct Example:
+
+{
+  "question": "Who helped Aarav?",
+  "options": [
+    { "id": "A", "text": "A wizard" },
+    { "id": "B", "text": "A fairy" },
+    { "id": "C", "text": "A dragon" },
+    { "id": "D", "text": "His mother" }
+  ],
+  "answer": "B"
+}
+
+Wrong Example:
+
+{
+  "answer": "C"
+}
+
+Never use the wrong example.
 
 Return this exact JSON format:
 
@@ -113,16 +140,60 @@ Return this exact JSON format:
       "visualPrompt": "string",
       "emotion": "happy | sad | excited | neutral",
       "audioNarration": "string",
-      imageUrl, 
     }
   ],
   "quiz": [
-    { "question": "string", "options": ["A", "B", "C", "D"], "answer": "A" },
-    { "question": "string", "options": ["A", "B", "C", "D"], "answer": "A" },
-    { "question": "string", "options": ["A", "B", "C", "D"], "answer": "A" },
-    { "question": "string", "options": ["A", "B", "C", "D"], "answer": "A" },
-    { "question": "string", "options": ["A", "B", "C", "D"], "answer": "A" }
-  ]
+  {
+    "question": "string",
+    "options": [
+      "Option 1",
+      "Option 2",
+      "Option 3",
+      "Option 4"
+    ],
+    "answer": "Option 2"
+  },
+  {
+    "question": "string",
+    "options": [
+      "Option 1",
+      "Option 2",
+      "Option 3",
+      "Option 4"
+    ],
+    "answer": "Option 3"
+  },
+  {
+    "question": "string",
+    "options": [
+      "Option 1",
+      "Option 2",
+      "Option 3",
+      "Option 4"
+    ],
+    "answer": "Option 1"
+  },
+  {
+    "question": "string",
+    "options": [
+      "Option 1",
+      "Option 2",
+      "Option 3",
+      "Option 4"
+    ],
+    "answer": "Option 4"
+  },
+  {
+    "question": "string",
+    "options": [
+      "Option 1",
+      "Option 2",
+      "Option 3",
+      "Option 4"
+    ],
+    "answer": "Option 2"
+  }
+]
 }
 
 User input:
