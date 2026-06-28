@@ -6,7 +6,10 @@ export const getStories = async (
   res: Response
 ) => {
   try {
-    const stories = await Story.find().sort({
+    const stories = await Story.find({
+      status: "approved",
+      published: true,
+    }).sort({
       createdAt: -1,
     });
 
@@ -96,6 +99,94 @@ export const downloadStory = async (
     res.status(500).json({
       success: false,
       message: "Failed to download story",
+    });
+  }
+};
+
+export const generateVideo = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const story = await Story.findById(req.params.id);
+
+    if (!story) {
+      return res.status(404).json({
+        success: false,
+        message: "Story not found",
+      });
+    }
+
+    story.videoStatus = "generating";
+    await story.save();
+
+    res.json({
+      success: true,
+      message: "Video generation started",
+      data: story,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to start video generation",
+    });
+  }
+};
+
+export const approveStory = async (
+  req: Request,
+  res: Response
+) => {
+  console.log("APPROVE CONTROLLER HIT");
+  console.log("Story ID:", req.params.id);
+  try {
+    const story = await Story.findByIdAndUpdate(
+      req.params.id,
+      {
+        published: true,
+        approvedAt: new Date(),
+      },
+      { new: true }
+    );
+
+    res.json({
+      success: true,
+      data: story,
+    });
+  } catch (error) {
+  console.error("APPROVE ERROR:", error);
+
+  res.status(500).json({
+    success: false,
+    message:
+      error instanceof Error ? error.message : "Unknown error",
+  });
+}
+};
+
+export const rejectStory = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const story = await Story.findByIdAndUpdate(
+      req.params.id,
+      {
+        published: false,
+        rejectionReason:
+          req.body.reason || "Rejected by teacher",
+      },
+      { new: true }
+    );
+
+    res.json({
+      success: true,
+      data: story,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Rejection failed",
     });
   }
 };

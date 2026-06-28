@@ -1,6 +1,12 @@
 import { model } from "../config/gemini.config";
+import Groq from "groq-sdk";
+import axios from "axios";
 
-export const generateStory = async (
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
+//  Prompt Builder 
+
+const buildPrompt = (
   userPrompt: string,
   language: string,
   ageGroup: string,
@@ -9,9 +15,7 @@ export const generateStory = async (
   learningGoal: string,
   heroName: string,
   heroVoice: string,
-) => {
-  try {
-    const prompt = `
+): string => `
 You are an AI storyteller for children.
 
 Convert the user input into a structured animated story.
@@ -82,14 +86,22 @@ Learning Goal:
 - Social → friendship and communication.
 - Values → honesty, respect, responsibility and integrity.
 
+QUIZ RULES:
+- The quiz array MUST contain exactly 5 questions.
+- Never generate fewer than 5 questions.
+- Never generate more than 5 questions.
+- Each question must have exactly 4 options.
+- Exactly one correct answer.
+- Questions must test understanding of the story.
+
 OTHER RULES:
 - Make it child-friendly.
 - Include Nepali culture, places, festivals when appropriate.
+- Follow the Story Length rules exactly.
 - Output MUST be valid JSON only.
-- No markdown.
-- No explanations.
+- No markdown, no explanations.
 
-Return this exact format:
+Return this exact JSON format:
 
 {
   "title": "string",
@@ -100,15 +112,16 @@ Return this exact format:
       "text": "string",
       "visualPrompt": "string",
       "emotion": "happy | sad | excited | neutral",
-      "audioNarration": "string"
+      "audioNarration": "string",
+      imageUrl, 
     }
   ],
   "quiz": [
-    {
-      "question": "string",
-      "options": ["A", "B", "C", "D"],
-      "answer": "A"
-    }
+    { "question": "string", "options": ["A", "B", "C", "D"], "answer": "A" },
+    { "question": "string", "options": ["A", "B", "C", "D"], "answer": "A" },
+    { "question": "string", "options": ["A", "B", "C", "D"], "answer": "A" },
+    { "question": "string", "options": ["A", "B", "C", "D"], "answer": "A" },
+    { "question": "string", "options": ["A", "B", "C", "D"], "answer": "A" }
   ]
 }
 
@@ -116,25 +129,159 @@ User input:
 ${userPrompt}
 `;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
+//  Response Parser 
 
-    const text = response.text();
+const parseStoryResponse = (raw: string) => {
+  const cleaned = raw
+    .replace(/```json/g, "")
+    .replace(/```/g, "")
+    .trim();
 
-    const cleaned = text
-      .replace(/```json/g, "")
-      .replace(/```/g, "")
-      .trim();
+  const parsed = JSON.parse(cleaned);
 
-    try {
-      return JSON.parse(cleaned);
-    } catch (err) {
-      console.error("JSON Parse Error:", cleaned);
-      throw new Error("AI returned invalid JSON");
-    }
-
-  } catch (error) {
-    console.error("AI SERVICE ERROR:", error);
-    throw new Error("AI story generation failed");
+  if (!parsed.quiz || parsed.quiz.length !== 5) {
+    throw new Error(
+      `AI returned ${parsed.quiz?.length ?? 0} quiz questions instead of 5`
+    );
   }
+
+  return parsed;
+};
+
+//  Provider: Groq 
+
+const generateWithGroq = async (prompt: string) => {
+  const completion = await groq.chat.completions.create({
+    model: "llama-3.3-70b-versatile",
+    messages: [{ role: "user", content: prompt }],
+    temperature: 0.7,
+    max_tokens: 4096,
+    response_format: { type: "json_object" }, // guarantees valid JSON
+  });
+
+  const text = completion.choices[0]?.message?.content ?? "";
+  return parseStoryResponse(text);
+};
+
+//  Provider: Gemini (fallback) 
+
+const generateWithGemini = async (prompt: string) => {
+  let result: any;
+
+  for (let i = 0; i < 3; i++) {
+    try {
+      result = await model.generateContent(prompt);
+      break;
+    } catch (error: any) {
+      if (i === 2 || error?.status !== 429) throw error;
+      // exponential backoff: 2s, 4s, 6s
+      await new Promise((resolve) => setTimeout(resolve, 2000 * (i + 1)));
+    }
+  }
+
+  if (!result) throw new Error("Gemini failed to generate story");
+
+  const text = result.response.text();
+  return parseStoryResponse(text);
+};
+
+// ─── Helper ───────────────────────────────────────────────────────────────────
+
+const isQuotaError = (error: any): boolean => {
+  const status = error?.status ?? error?.statusCode ?? error?.response?.status;
+  const message = error?.message?.toLowerCase() ?? "";
+  return (
+    status === 429 ||
+    status === 503 ||
+    message.includes("quota") ||
+    message.includes("rate limit") ||
+    message.includes("too many requests")
+  );
+};
+
+// ─── Main Export ──────────────────────────────────────────────────────────────
+
+export const generateStory = async (
+  userPrompt: string,
+  language: string,
+  ageGroup: string,
+  storyLength: string,
+  genre: string,
+  learningGoal: string,
+  heroName: string,
+  heroVoice: string,
+) => {
+  const prompt = buildPrompt(
+    userPrompt, language, ageGroup, storyLength,
+    genre, learningGoal, heroName, heroVoice
+  );
+
+  // ── 1. Try Groq first ──
+  try {
+    console.log("[AI] Attempting Groq (primary)...");
+    const result = await generateWithGroq(prompt);
+    console.log("[AI] ✓ Groq succeeded");
+    return result;
+  } catch (groqError: any) {
+    console.warn("[AI] Groq failed:", groqError?.message);
+
+    if (!isQuotaError(groqError)) {
+      // Parse error or bad response — no point trying Gemini
+      throw new Error("Story generation failed. Please try again.");
+    }
+  }
+
+  // Fallback to Gemini 
+  try {
+    console.log("[AI] Groq quota hit, falling back to Gemini...");
+    const result = await generateWithGemini(prompt);
+    console.log("[AI] ✓ Gemini succeeded");
+    return result;
+  } catch (geminiError: any) {
+    console.error("[AI] Both providers failed:", geminiError?.message);
+    throw new Error(
+      "Story generation is temporarily unavailable. Please try again in a few minutes."
+    );
+  }
+};
+
+//  Scene Image Generation 
+
+export const generateSceneImage = async (prompt: string) => {
+  const response = await axios.post(
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+    {
+      contents: [
+        {
+          parts: [{ text: `Generate a high quality children story illustration: ${prompt}` }],
+        },
+      ],
+    },
+    {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.GEMINI_API_KEY}`,
+      },
+    }
+  );
+
+  return response.data;
+};
+
+export const generateImage = async (prompt: string) => {
+  const response = await axios.post(
+    "https://api.stability.ai/v2beta/stable-image/generate/core",
+    {
+      prompt: `children story illustration, cinematic, 4k: ${prompt}`,
+      output_format: "png",
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${process.env.STABILITY_API_KEY}`,
+        Accept: "application/json",
+      },
+    }
+  );
+
+  return response.data;
 };

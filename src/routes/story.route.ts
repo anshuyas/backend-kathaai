@@ -4,7 +4,11 @@ import {
   getStoryById,
   publishStory,
   downloadStory,
+  generateVideo,
+  approveStory,
+  rejectStory,
 } from "../controllers/story.controller";
+import Story from "../models/story.model";
 
 const router = express.Router();
 
@@ -25,4 +29,98 @@ router.patch(
   downloadStory
 );
 
+router.post(
+  "/:id/generate-video",
+  generateVideo
+);
+
+// Student: submit story for approval
+router.patch("/:id/submit", async (req, res) => {
+  try {
+    const story = await Story.findByIdAndUpdate(
+      req.params.id,
+      { status: "pending_approval" },
+      { new: true }
+    );
+    if (!story) return res.status(404).json({ message: "Story not found" });
+    res.json({ success: true, data: story });
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Teacher: get all stories pending approval
+router.get("/pending", async (req, res) => {
+  try {
+    const stories = await Story.find({ status: "pending_approval" })
+      .populate("userId", "name email")
+      .sort({ createdAt: -1 });
+    res.json({ success: true, data: stories });
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Teacher: approve a story
+router.patch("/:id/approve", async (req, res) => {
+  try {
+    const { teacherId } = req.body;
+    const story = await Story.findByIdAndUpdate(
+      req.params.id,
+      {
+        status: "approved",
+        published: true,
+        approvedBy: teacherId,
+        approvedAt: new Date(),
+        rejectionReason: "",
+      },
+      { new: true }
+    );
+    if (!story) return res.status(404).json({ message: "Story not found" });
+    res.json({ success: true, data: story });
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Teacher: reject a story
+router.patch("/:id/reject", async (req, res) => {
+  try {
+    const { reason } = req.body;
+    const story = await Story.findByIdAndUpdate(
+      req.params.id,
+      {
+        status: "rejected",
+        published: false,
+        rejectionReason: reason || "Not suitable for publishing.",
+      },
+      { new: true }
+    );
+    if (!story) return res.status(404).json({ message: "Story not found" });
+    res.json({ success: true, data: story });
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Student: mark as downloaded
+router.patch("/:id/download", async (req, res) => {
+  try {
+    const story = await Story.findByIdAndUpdate(
+      req.params.id,
+      { downloaded: true, $inc: { downloadCount: 1 } },
+      { new: true }
+    );
+    if (!story) return res.status(404).json({ message: "Story not found" });
+    res.json({ success: true, data: story });
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+router.patch("/:id/approve", approveStory);
+
+router.patch("/:id/reject", rejectStory);
+
 export default router;
+
