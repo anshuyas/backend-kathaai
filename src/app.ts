@@ -5,6 +5,7 @@ import storyRoutes from "./routes/story.route";
 import authRoutes from "./routes/auth.route";
 import userRoutes from "./routes/user.route";
 import teacherRoutes from "./routes/teacher.route";
+import readingRoutes from "./routes/reading.route";
 
 const app = express();
 
@@ -16,6 +17,7 @@ app.use("/api/story", storyRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/teacher", teacherRoutes);
+app.use("/api/reading", readingRoutes);
 
 app.get("/", (req, res) => {
   res.send("KathaAI Backend Running");
