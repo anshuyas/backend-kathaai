@@ -1,5 +1,9 @@
 import ReadingSession from "../models/readingSession.model";
 
+console.log("READING SESSION MODEL:");
+console.log(ReadingSession);
+console.log(typeof ReadingSession);
+
 export const startReading = async (
   userId: string,
   storyId: string

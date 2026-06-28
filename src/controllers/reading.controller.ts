@@ -11,18 +11,20 @@ export const startStory = async (
   try {
     const { userId, storyId } = req.body;
 
-    const session = await startReading(
-      userId,
-      storyId
-    );
+    const session = await startReading(userId, storyId);
 
-    res.json({
+    console.log("SESSION CREATED:", session);
+
+    return res.json({
       success: true,
       data: session,
     });
-  } catch {
-    res.status(500).json({
+  } catch (error) {
+    console.error("START READING ERROR:", error);
+
+    return res.status(500).json({
       success: false,
+      error,
     });
   }
 };
@@ -43,9 +45,12 @@ export const finishStory = async (
       success: true,
       data: session,
     });
-  } catch {
+  } catch (error) {
+    console.error("FINISH READING ERROR:", error);
+
     res.status(500).json({
       success: false,
+      error,
     });
   }
 };
