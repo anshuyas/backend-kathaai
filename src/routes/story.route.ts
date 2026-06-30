@@ -2,6 +2,7 @@ import express from "express";
 import {
   getStories,
   getStoryById,
+  getMyStories,
   publishStory,
   downloadStory,
   generateVideo,
@@ -12,6 +13,8 @@ import {
 import Story from "../models/story.model";
 
 const router = express.Router();
+
+router.get("/my/:userId", getMyStories);
 
 router.get("/", getStories);
 

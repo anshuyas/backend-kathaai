@@ -14,6 +14,7 @@ export const createStory = async (req: Request, res: Response) => {
   learningGoal,
   heroName,
   heroVoice,
+  userId,
 } = req.body;
 
 const result = await generateStory(
@@ -35,6 +36,7 @@ for (const scene of result.scenes) {
 }
 const savedStory = await saveStory({
   title: result.title,
+  userId,
   language,
   ageGroup,
   storyLength,

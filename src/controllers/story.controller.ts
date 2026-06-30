@@ -26,6 +26,29 @@ export const getStories = async (
   }
 };
 
+export const getMyStories = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const stories = await Story.find({
+      userId: req.params.userId,
+    }).sort({
+      createdAt: -1,
+    });
+
+    res.json({
+      success: true,
+      data: stories,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch user stories",
+    });
+  }
+};
+
 export const getStoryById = async (
   req: Request,
   res: Response

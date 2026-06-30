@@ -1,17 +1,26 @@
 import Story from "../models/story.model";
 
 export const getTeacherDashboard = async () => {
-  const pending = await Story.find({
+    
+ const pending = await Story.find({
   status: "pending_approval",
-}).sort({ createdAt: -1 });
+})
+  .populate("userId", "fullName email")
+  .sort({ createdAt: -1 });
 
- const approved = await Story.find({
+  console.log(JSON.stringify(pending, null, 2));
+
+const approved = await Story.find({
   status: "approved",
-}).sort({ createdAt: -1 });
+})
+  .populate("userId", "name email")
+  .sort({ createdAt: -1 });
 
 const rejected = await Story.find({
   status: "rejected",
-}).sort({ createdAt: -1 });
+})
+  .populate("userId", "name email")
+  .sort({ createdAt: -1 });
 
   return {
     progress: {
