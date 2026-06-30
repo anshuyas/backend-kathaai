@@ -7,12 +7,15 @@ import {
   generateVideo,
   approveStory,
   rejectStory,
+  createStory,
 } from "../controllers/story.controller";
 import Story from "../models/story.model";
 
 const router = express.Router();
 
 router.get("/", getStories);
+
+router.post("/save", createStory);
 
 router.get(
   "/:id",

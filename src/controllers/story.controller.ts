@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import Story from "../models/story.model";
+import { saveStory } from "../services/story.service";
 
 export const getStories = async (
   req: Request,
@@ -189,4 +190,27 @@ export const rejectStory = async (
       message: "Rejection failed",
     });
   }
+};
+
+export const createStory = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const story = await saveStory(req.body);
+
+    res.status(201).json({
+      success: true,
+      data: story,
+    });
+  } catch (error) {
+  console.error("SAVE STORY ERROR:");
+  console.error(error);
+
+  res.status(500).json({
+    success: false,
+    message:
+      error instanceof Error ? error.message : "Unknown error",
+  });
+}
 };

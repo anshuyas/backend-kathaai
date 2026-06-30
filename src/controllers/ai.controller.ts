@@ -46,6 +46,9 @@ const savedStory = await saveStory({
 
   heroName,
   heroVoice,
+
+  status: "generated",
+  published: false,
 });
 console.log("SAVED STORY:", savedStory);
     res.json({
