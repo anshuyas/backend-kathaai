@@ -49,6 +49,8 @@ const savedStory = await saveStory({
   heroName,
   heroVoice,
 
+  coverImage: result.scenes[0]?.imageUrl || "",
+
   status: "generated",
   published: false,
 });

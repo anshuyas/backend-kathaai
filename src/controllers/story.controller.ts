@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import mongoose from "mongoose";
 import Story from "../models/story.model";
 import { saveStory } from "../services/story.service";
 
@@ -45,6 +46,29 @@ export const getMyStories = async (
     res.status(500).json({
       success: false,
       message: "Failed to fetch user stories",
+    });
+  }
+};
+
+export const getMyDownloads = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const stories = await Story.find({
+      downloadedBy: new mongoose.Types.ObjectId(req.params.userId),
+    }).sort({
+      updatedAt: -1,
+    });
+
+    res.json({
+      success: true,
+      data: stories,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch downloaded stories",
     });
   }
 };
@@ -107,13 +131,30 @@ export const downloadStory = async (
   res: Response
 ) => {
   try {
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "userId is required to download a story",
+      });
+    }
+
     const story = await Story.findByIdAndUpdate(
       req.params.id,
       {
-        downloaded: true,
+        $addToSet: { downloadedBy: userId }, // no-op if already downloaded by this user
+        $inc: { downloadCount: 1 },
       },
       { new: true }
     );
+
+    if (!story) {
+      return res.status(404).json({
+        success: false,
+        message: "Story not found",
+      });
+    }
 
     res.json({
       success: true,

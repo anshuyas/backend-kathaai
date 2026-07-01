@@ -77,8 +77,42 @@ const storySchema = new mongoose.Schema(
 
     //  Publishing & downloads 
     published: { type: Boolean, default: false },
-    downloaded: { type: Boolean, default: false },
-    downloadCount: { type: Number, default: 0 },
+ downloadedBy: {
+      type: [mongoose.Schema.Types.ObjectId],
+      ref: "User",
+      default: [],
+    },
+        downloadCount: { type: Number, default: 0 },
+
+    isDailyChallenge: {
+  type: Boolean,
+  default: false,
+},
+
+challengeDate: {
+  type: String,
+  default: "",
+},
+
+readReward: {
+  type: Number,
+  default: 10,
+},
+
+quizReward: {
+  type: Number,
+  default: 25,
+},
+
+completionReward: {
+  type: Number,
+  default: 15,
+},
+
+totalReward: {
+  type: Number,
+  default: 50,
+},
   },
   { timestamps: true }
 );

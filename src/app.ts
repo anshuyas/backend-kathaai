@@ -7,6 +7,7 @@ import userRoutes from "./routes/user.route";
 import teacherRoutes from "./routes/teacher.route";
 import readingRoutes from "./routes/reading.route";
 import parentRoutes from "./routes/parent.route";
+import dailyChallengeRoutes from "./routes/dailyChallenge.route";
 
 const app = express();
 
@@ -20,6 +21,7 @@ app.use("/api/user", userRoutes);
 app.use("/api/teacher", teacherRoutes);
 app.use("/api/reading", readingRoutes);
 app.use("/api/parent", parentRoutes);
+app.use("/api/daily-challenge", dailyChallengeRoutes);
 
 app.get("/", (req, res) => {
   res.send("KathaAI Backend Running");

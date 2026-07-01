@@ -3,6 +3,7 @@ import {
   getStories,
   getStoryById,
   getMyStories,
+  getMyDownloads,
   publishStory,
   downloadStory,
   generateVideo,
@@ -15,6 +16,8 @@ import Story from "../models/story.model";
 const router = express.Router();
 
 router.get("/my/:userId", getMyStories);
+
+router.get("/downloads/:userId", getMyDownloads);  
 
 router.get("/", getStories);
 
@@ -100,21 +103,6 @@ router.patch("/:id/reject", async (req, res) => {
         published: false,
         rejectionReason: reason || "Not suitable for publishing.",
       },
-      { new: true }
-    );
-    if (!story) return res.status(404).json({ message: "Story not found" });
-    res.json({ success: true, data: story });
-  } catch (err) {
-    res.status(500).json({ message: "Server error" });
-  }
-});
-
-// Student: mark as downloaded
-router.patch("/:id/download", async (req, res) => {
-  try {
-    const story = await Story.findByIdAndUpdate(
-      req.params.id,
-      { downloaded: true, $inc: { downloadCount: 1 } },
       { new: true }
     );
     if (!story) return res.status(404).json({ message: "Story not found" });

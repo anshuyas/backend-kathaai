@@ -1,4 +1,5 @@
 import Story from "../models/story.model";
+import { User } from "../models/user.model";
 
 export const getTeacherDashboard = async () => {
     
@@ -13,44 +14,44 @@ export const getTeacherDashboard = async () => {
 const approved = await Story.find({
   status: "approved",
 })
-  .populate("userId", "name email")
+  .populate("userId", "fullName email")
   .sort({ createdAt: -1 });
 
 const rejected = await Story.find({
   status: "rejected",
 })
-  .populate("userId", "name email")
+  .populate("userId", "fullName email")
   .sort({ createdAt: -1 });
 
-  return {
-    progress: {
-      labels: ["Mon", "Tue", "Wed", "Thu", "Fri"],
-      storiesRead: [6, 9, 11, 8, 14],
-      quizzesTaken: [4, 8, 10, 7, 12],
-    },
+  const leaderboard = await User.find({ role: "student" })
+  .sort({ totalPoints: -1 })
+  .limit(5)
+  .select("fullName totalPoints");
 
-    leaderboard: [
-      {
-        name: "Ananya Sharma",
-        points: 1250,
-      },
-      {
-        name: "Rohan Khatri",
-        points: 1120,
-      },
-      {
-        name: "Priya Basnet",
-        points: 1080,
-      },
-      {
-        name: "Sameer Dahal",
-        points: 995,
-      },
-      {
-        name: "Maya Adhikari",
-        points: 940,
-      },
-    ],
+  const progressAgg = await User.aggregate([
+  { $match: { role: "student" } },
+  {
+    $group: {
+      _id: null,
+      totalStoriesRead: { $sum: "$storiesRead" },
+      totalQuizzesCompleted: { $sum: "$quizzesCompleted" },
+    },
+  },
+]);
+ console.log("progressAgg:", progressAgg);
+
+const progress = {
+  totalStoriesRead: progressAgg[0]?.totalStoriesRead ?? 0,
+  totalQuizzesCompleted: progressAgg[0]?.totalQuizzesCompleted ?? 0,
+};
+
+  return {
+    progress,
+
+    leaderboard: leaderboard.map((u) => ({
+  name: u.fullName,
+  points: u.totalPoints,
+})),
 
     approvals: {
       pending,
